@@ -8,6 +8,8 @@ Subroutines are included to parse the parameters fitted by RuNNer [2].
 However only the most basic features are implemented and only the G2 and G4 symmetryfunctions [3] can be calculated. 
 The code is designed in a modular way, such that the implementation of additional features should be simple.
 
+A simple example running a molecular dynamics simulation on an example HDNNP for a methylammonium molecule is included in the file ```src/potentials/hdnnpExample.f90```.
+The parameters for the potential can be found in the ```example``` directory.
 
 [1] Behler, Jörg, and Michele Parrinello. "Generalized neural-network representation of high-dimensional potential-energy surfaces." Physical review letters 98.14 (2007): 146401.  
 [2] [https://www.uni-goettingen.de/de/560580.html](https://www.uni-goettingen.de/de/560580.html)  
