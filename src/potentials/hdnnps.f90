@@ -330,11 +330,12 @@ contains
     end subroutine
 
     ! todo: split this into part: for the FHMC we dont need to recalc the SF if we evaluate multiple HDNNPs
-    subroutine hdnnpEnergyAndForces(handle, ats, energy, force)
+    subroutine hdnnpEnergyAndForces(handle, ats, energy, force, dEdLat)
         type(hdnnp), intent(inout) :: handle
         type(atStruct), intent(in) :: ats
         real(dp), intent(out) :: energy
         real(dp), intent(out) :: force(3, ats%nat)
+        real(dp), intent(out), optional :: dEdLat(3,3)
         logical, parameter :: calcSFsTogether = .true.
         logical, parameter :: measureTiming = .false.
         type(symFunctionContainer) :: sfs(ats%nat)
@@ -352,7 +353,7 @@ contains
         if (measureTiming) print*, 'time symfunction', et-st
 
         if (measureTiming) call cpu_time(st)
-        call hdnnpCalcNNs(handle, ats, neiLists, sfs, energy, force)
+        call hdnnpCalcNNs(handle, ats, neiLists, sfs, energy, force, dEdLat)
         if (measureTiming) call cpu_time(et)
         if (measureTiming) print*, 'time nns', et-st
 
@@ -470,19 +471,28 @@ contains
 
     end subroutine hdnnpCalcSymfunctions
 
-    subroutine hdnnpCalcNNs(handle, ats, neiLists, sfs, energy, force)
+    subroutine hdnnpCalcNNs(handle, ats, neiLists, sfs, energy, force, dEdLat)
         type(hdnnp), intent(inout) :: handle
         type(atStruct), intent(in) :: ats
         type(neighborList), intent(in) :: neiLists(ats%nat)
         type(symFunctionContainer), intent(in) :: sfs(ats%nat)
         real(dp), intent(out) :: energy
         real(dp), intent(out) :: force(3, ats%nat)
-        integer :: iat, isf, i, nsf
+        real(dp), intent(out), optional :: dEdLat(3,3)
+        integer :: iat, isf, i, nsf, ix
         real(dp), allocatable :: sfValues(:), dEdSf(:)
         real(dp) :: ones(1), tmpEnergy(1)
+        real(dp) :: relats(3, ats%nat)
+        real(dp) :: invlat(3,3), relat(3)
 
         energy = 0._dp
         force = 0._dp
+        if (present(dEdLat)) then
+            relats = ats%ats
+            call toRelativeCoordinates(ats%nat, ats%lat, relats)
+            dEdLat = 0._dp
+            call inv3DM(ats%lat, invlat)
+        end if
         ! todo: implement lapack in nn and use batches over atoms of same element for performace
         do iat=1,ats%nat
             nsf = sfs(iat)%nsf
@@ -506,6 +516,21 @@ contains
                             - dEdSf(isf) * sfs(iat)%sfs(isf)%dsf(:,i)
                 end do
             end do
+            if (present(dEdLat)) then
+                do isf=1,nsf
+                    ! this here is much slower (maybe because of temp. array creation?)
+                    !dEdLat(:,:) = dEdLat(:,:) + dEdSf(isf) * &
+                    !        matmul(sfs(iat)%sfs(isf)%dsf(:,:neiLists(iat)%nneis), &
+                    !                transpose(matmul(invlat,  neiLists(iat)%neis(:,:neiLists(iat)%nneis))))
+                    do i=1, neiLists(iat)%nneis
+                        relat = matMulVec3(invlat, neiLists(iat)%neis(:,i))
+                        do ix=1,3
+                            dEdLat(:, ix) = dEdLat(:, ix) + &
+                                    dEdSf(isf) * sfs(iat)%sfs(isf)%dsf(:,i) * relat(ix)
+                        end do
+                    end do
+                end do
+            end if
         end do
     end subroutine
 

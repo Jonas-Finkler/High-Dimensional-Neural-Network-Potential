@@ -676,4 +676,24 @@ contains
         call translate(ats%nat, ats%ats, t)
     end subroutine as_translate
 
+    subroutine dEdLat2Stress(lat, dEdlat, stress)
+        real(dp), intent(in) :: lat(3,3)
+        real(dp), intent(out) :: stress(3,3)
+        real(dp), intent(in) :: dEdlat(3,3)
+
+        stress = -1._dp / det3D(lat) * matmul(dEdlat, transpose(lat))
+
+    end subroutine
+
+    subroutine stress2dEdLat(lat, stress, dEdlat)
+        real(dp), intent(in) :: lat(3,3)
+        real(dp), intent(in) :: stress(3,3)
+        real(dp), intent(out) :: dEdlat(3,3)
+        real(dp) :: invlat(3,3)
+
+        call inv3DM(lat, invlat)
+        dEdlat = -1._dp * det3D(lat) * matmul(stress, transpose(invlat))
+
+    end subroutine
+
 end module atomicStructure

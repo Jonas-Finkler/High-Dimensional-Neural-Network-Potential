@@ -3,6 +3,8 @@
 Fortran implementation of a high dimensional neural network potential.
 
 This is a simple implementation of the prediction step for a high dimensional neural network potential (HDNNP)[1].
+The calculation of analytical derivatives of the energy with respect to the atomic positions (forces) and lattice vectors (stress)
+are implemented. 
 Training of the HDNNP is not implemented. 
 Subroutines are included to parse the parameters fitted by RuNNer [2].
 However only the most basic features are implemented and only the G2 and G4 symmetryfunctions [3] can be calculated.
@@ -19,7 +21,7 @@ In most cases the evaluation of the symmetryfunction is the most expensive part.
 However, for large systems the construction of the neighbourlists might become more expensive since the current implementation 
 loops over all possible pairs of atoms. 
 In that case it might be advantageous to implement an algorithm that bins the atoms into a grid.
-Since the evaluation of the neural networks is usually rather inexpensive, calls to BLAS are not yet implemented. 
+Since the evaluation of the neural networks is usually rather inexpensive, calls to BLAS are not yet implemented.
 
 A CMake script to compile the code is included. It can be used as follows:
 ```bash

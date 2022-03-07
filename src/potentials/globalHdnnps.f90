@@ -28,17 +28,16 @@ contains
 
     end subroutine
 
-    subroutine globalHdnnpEnergyAndForces(ats, forces, dEdLat, energy, std)
+    subroutine globalHdnnpEnergyAndForces(ats, energy, forces, dEdLat, std)
         implicit none
         type(atStruct), intent(in) :: ats
-        real(dp), intent(out) :: forces(3,ats%nat), dEdLat(3,3), energy
-        real(dp), intent(out), optional :: std
+        real(dp), intent(out) :: forces(3,ats%nat), energy
+        real(dp), intent(out), optional :: std, dEdLat(3,3)
         integer :: i
         type(neighborList) :: neiLists(ats%nat)
         type(symFunctionContainer) :: sfs(ats%nat)
         real(dp) :: st, et
-
-        real(dp) :: f(3,ats%nat,nGlobalHdnnps), ee(nGlobalHdnnps)
+        real(dp) :: f(3,ats%nat,nGlobalHdnnps), ee(nGlobalHdnnps), dlat(3,3,nGlobalHdnnps)
 
         dEdLat = 0._dp
         energy = 0._dp
@@ -54,7 +53,7 @@ contains
         !  print*, 'symfunctions', et-st
         !  call cpu_time(st)
         do i=1,nGlobalHdnnps
-            call hdnnpCalcNNs(globalHdnnpHandles(i), ats, neiLists, sfs, ee(i), f(:,:,i))
+            call hdnnpCalcNNs(globalHdnnpHandles(i), ats, neiLists, sfs, ee(i), f(:,:,i), dlat(:,:,i))
         end do
         !  call cpu_time(et)
         !  print*, 'nns', et-st
@@ -62,9 +61,12 @@ contains
         !print*, 'std', sqrt(sum((ee-energy)**2) / nhdnnps)
         forces = sum(f, 3) / nGlobalHdnnps
 
+        dEdLat = sum(dlat, 3) / nGlobalHdnnps
+
         if (present(std)) then
             std = sqrt(sum((ee - energy)**2) / nGlobalHdnnps)
         end if
 
     end subroutine globalHdnnpEnergyAndForces
+
 end module globalHdnnps

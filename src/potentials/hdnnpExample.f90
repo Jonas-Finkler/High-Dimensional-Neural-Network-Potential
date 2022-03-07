@@ -12,6 +12,7 @@ program hdnnpExample
     integer :: n, i
     real(dp) :: epot, ekin
     real(dp), allocatable :: forces(:,:), m(:,:), p(:,:), lastForces(:,:)
+    real(dp) :: dEdLat(3,3), stress(3,3)
 
     real(dp), parameter :: stepsize = 0.5_dp * femtoseconds2atomic
     real(dp), parameter :: T = 240._dp ! temperature
@@ -44,6 +45,10 @@ program hdnnpExample
     ! remove mean velocity
     call center(ats%nat, p)
 
+   ! ! Derivatives of the energy w.r.t the lattice vectors can also be computed ...
+   ! call hdnnpEnergyAndForces(hdnnpHandle, ats, epot, forces, dEdLat)
+   ! ! ... and transformed to the stress tensor. Of course this only works for periodic systems (not this example HDNNP).
+   ! call dEdLat2Stress(ats%lat, dEdLat, stress)
 
 
     ! verlet integration

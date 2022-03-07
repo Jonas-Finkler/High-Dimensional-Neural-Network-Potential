@@ -177,8 +177,6 @@ contains
         integer :: intzeta
         real(dp) :: fcijs(nat), dfcijs(nat), dijs(3,nat), rijs(nat)
 
-        real(dp) :: t, tt
-
         sf3start = -1
         rcut = sfList%sfs(1)%rcut
 
