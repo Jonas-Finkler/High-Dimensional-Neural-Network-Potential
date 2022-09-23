@@ -14,7 +14,7 @@ program hdnnpExample
     real(dp), allocatable :: forces(:,:), m(:,:), p(:,:), lastForces(:,:)
     real(dp) :: dEdLat(3,3), stress(3,3)
 
-    real(dp), parameter :: stepsize = 0.9_dp * femtoseconds2atomic
+    real(dp), parameter :: stepsize = 0.5_dp * femtoseconds2atomic
     real(dp), parameter :: T = 140._dp ! temperature
 
     character(len=100) :: txt
@@ -25,10 +25,9 @@ program hdnnpExample
 
     ! read geometry
     ! parsers for other file formats are also available (data, ascii, POSCAR)
-    !call as_readXYZ('input.xyz', ats)
-    call as_readAscii('input.ascii', ats)
-    call as_repeatUnitCell(ats, [3,3,3])
-    print*, ats%nat
+    call as_readXYZ('input.xyz', ats)
+    !call as_readAscii('input.ascii', ats)
+    !call as_repeatUnitCell(ats, [3,3,3])
 
     ! allocate arrays
     allocate(forces(3, ats%nat))
@@ -40,7 +39,7 @@ program hdnnpExample
     m(1,:) = getAtomicMass(ats%el) * massUnit2ElectronMass ! atomic units use electron mass = 1
     m(2,:) = m(1,:)
     m(3,:) = m(1,:)
-    m(:,:) = getAtomicMass(1) * massUnit2ElectronMass
+    !m(:,:) = getAtomicMass(1) * massUnit2ElectronMass
 
     ! Boltzmann distributed velocities
     call randomPointSet(ats%nat, p)
@@ -58,8 +57,6 @@ program hdnnpExample
     ! verlet integration
     call hdnnpEnergyAndForces(hdnnpHandle, ats, epot, forces)
 
-    !call as_writeAscii('out/nlisttest.ascii', ats, .true.)
-    !stop
     do i = 0, 1000
         ats%ats = ats%ats + p / m * stepSize + 0.5_dp * forces / m * stepSize**2
         lastForces = forces
@@ -70,16 +67,8 @@ program hdnnpExample
         print*, 'MD', i, i * stepsize / femtoseconds2atomic, epot, ekin, epot + ekin
 
         ! save trajectory
-        !write(txt, '(A,I5.5,A)') 'out/', i, '.xyz'
-        !call as_writeXYZ(txt, ats)
-        if (modulo(i,1) == 0) then
-            write(txt, '(A,I5.5,A)') 'out/', i, '.ascii'
-            call as_writeAscii(txt, ats, .true.)
-
-        end if
-
+        write(txt, '(A,I5.5,A)') 'out/', i, '.xyz'
+        call as_writeXYZ(txt, ats)
     end do
-    !call as_writePOSCAR('POSCAR', ats)
-    print*, ats%nat
 
 end program hdnnpExample
