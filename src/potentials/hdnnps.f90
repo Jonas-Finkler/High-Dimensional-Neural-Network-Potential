@@ -332,20 +332,30 @@ contains
     ! todo: split this into part: for the FHMC we dont need to recalc the SF if we evaluate multiple HDNNPs
     subroutine hdnnpEnergyAndForces(handle, ats, energy, force, dEdLat)
         type(hdnnp), intent(inout) :: handle
-        type(atStruct), intent(in) :: ats
+        type(atStruct), intent(inout) :: ats
         real(dp), intent(out) :: energy
         real(dp), intent(out) :: force(3, ats%nat)
         real(dp), intent(out), optional :: dEdLat(3,3)
         logical, parameter :: calcSFsTogether = .true.
-        logical, parameter :: measureTiming = .false.
+        logical, parameter :: measureTiming = .true.
         type(symFunctionContainer) :: sfs(ats%nat)
         type(neighborList) :: neiLists(ats%nat)
         real(dp) :: st, et
+        integer :: i
 
         if (measureTiming) call cpu_time(st)
         call hdnnpCalcNeighborLists(handle, ats, neiLists)
         if (measureTiming) call cpu_time(et)
         if (measureTiming) print*, 'time neighborlist', et-st
+
+        !ats%el = 1
+        !do i=1,neiLists(1056)%nNeis
+        !    ats%el(neiLists(1056)%iNeis(i)) = 60
+
+        !end do
+
+        !ats%el(1056) = 79
+        !return
 
         if (measureTiming) call cpu_time(st)
         call hdnnpCalcSymfunctions(handle, ats, neiLists, sfs, calcSfsTogether)
@@ -370,7 +380,10 @@ contains
         if (tmpats%periodic) then
             call as_moveAtomsIntoCell(tmpats)
         end if
-        call buildNeighborList(tmpats, handle%maxRc, neiLists)
+        ! trivial implenentation, that comares every pair of atoms
+        !call buildNeighborList(tmpats, handle%maxRc, neiLists)
+        ! better implementation with linear scaling
+        call buildNeighborListGrid(tmpats, handle%maxRc, neiLists)
 
     end subroutine
 
@@ -383,7 +396,6 @@ contains
         integer :: iat, i, nNeis, isf
         type(symFunction) :: tsf
         integer, allocatable :: neiEls(:)
-        !integer :: neiEls(1024)
         logical :: calcTogether
 
         if (present(calcSfsTogether)) then
@@ -483,7 +495,9 @@ contains
         real(dp), allocatable :: sfValues(:), dEdSf(:)
         real(dp) :: ones(1), tmpEnergy(1)
         real(dp) :: relats(3, ats%nat)
-        real(dp) :: invlat(3,3), relat(3)
+        real(dp) :: invlat(3,3), relat(3), tmpdEdLat(3,3)
+        type(neuralNetwork) :: tmpNN
+        real(dp) :: atEns(ats%nat)
 
         energy = 0._dp
         force = 0._dp
@@ -493,7 +507,10 @@ contains
             dEdLat = 0._dp
             call inv3DM(ats%lat, invlat)
         end if
+        tmpdEdLat = 0._dp
         ! todo: implement lapack in nn and use batches over atoms of same element for performace
+
+        !$omp parallel do default(private) shared(ats, handle, sfs, neiLists, invlat, dEdLat, atEns) reduction(+:force,tmpdEdLat)
         do iat=1,ats%nat
             nsf = sfs(iat)%nsf
             if (allocated(sfValues)) deallocate(sfValues)
@@ -502,18 +519,20 @@ contains
                 sfValues(isf) = sfs(iat)%sfs(isf)%sf
             end do
             ! todo: use blas in nn forward and backward routine
-            call nn_forward(handle%nnList(ats%el(iat)), sfValues, tmpEnergy)
-            energy = energy + tmpEnergy(1) + handle%atomenergies(ats%el(iat))
+            tmpNN = handle%nnList(ats%el(iat))
+            call nn_forward(tmpNN, sfValues, tmpEnergy)
+            !energy = energy + tmpEnergy(1) + handle%atomenergies(ats%el(iat))
+            atEns(iat) = tmpEnergy(1) + handle%atomenergies(ats%el(iat))
             ones(1) = 1._dp
             if (allocated(dEdSf)) deallocate(dEdSf)
             allocate(dEdSf(nsf))
             ! todo: add a flag to this routine to not calculate the gradients wrt the weights
-            call nn_backward(handle%nnList(ats%el(iat)), ones, dEdSF, .false.)
+            call nn_backward(tmpNN, ones, dEdSF, .false.)
             ! this here is actually the slowest part
             do isf=1,nsf
                 do i=1, neiLists(iat)%nneis
                     force(:,neiLists(iat)%ineis(i)) = force(:,neiLists(iat)%ineis(i)) &
-                            - dEdSf(isf) * sfs(iat)%sfs(isf)%dsf(:,i)
+                            + (-1._dp * dEdSf(isf) * sfs(iat)%sfs(isf)%dsf(:,i))
                 end do
             end do
             if (present(dEdLat)) then
@@ -525,13 +544,20 @@ contains
                     do i=1, neiLists(iat)%nneis
                         relat = matMulVec3(invlat, neiLists(iat)%neis(:,i))
                         do ix=1,3
-                            dEdLat(:, ix) = dEdLat(:, ix) + &
+                            tmpdEdLat(:, ix) = tmpdEdLat(:, ix) + &
                                     dEdSf(isf) * sfs(iat)%sfs(isf)%dsf(:,i) * relat(ix)
                         end do
                     end do
                 end do
             end if
         end do
+        !$omp end parallel do
+
+        energy = sum(atEns) ! workaround, since OMP does not work with more than two reductions
+
+        if (present(dEdLat)) then
+            dEdLat = tmpdEdLat
+        end if
     end subroutine
 
 

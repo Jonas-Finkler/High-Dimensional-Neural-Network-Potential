@@ -56,6 +56,7 @@ add_executable(
         src/util/doubleLinkedList.f90
         src/util/util.f90
         src/util/dynamicArray.f90
+        src/util/dynamicIntArray.f90
         src/util/sorting.f90
         #src/util/argumentParser.f90
 
