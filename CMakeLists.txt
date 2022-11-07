@@ -40,8 +40,10 @@ add_executable(
 
         ${sources}
 
-        src/potentials/hdnnpExample.f90 # <- main
+        #src/potentials/hdnnpExample.f90 # <- main
+        src/potentials/MaPbI3Example.f90
 
+        src/potentials/globalHdnnps.f90
         src/potentials/hdnnps.f90
         src/potentials/symmetryFunctions.f90
         src/potentials/neighborLists.f90
