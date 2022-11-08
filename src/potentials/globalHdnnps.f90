@@ -87,10 +87,12 @@ contains
         energy = 0._dp
         forces = 0._dp
 
+        ! Neighborlist and symmetry functions are the most expensive part.
+        ! We only need to do this once.
         call hdnnpCalcNeighborLists(globalHdnnpHandles(1), ats, neiLists)
-
         call hdnnpCalcSymfunctions(globalHdnnpHandles(1), ats, neiLists, sfs, .true.)
 
+        ! Evaluating all the nns is therefore not so much more expensive than using just one
         do i=1,nGlobalHdnnps
             call hdnnpCalcNNs(globalHdnnpHandles(i), ats, neiLists, sfs, ee(i), f(:,:,i), dlat(:,:,i))
         end do
