@@ -33,7 +33,10 @@ cd ../example
 ../build/hdnnp.x # run the example program
 ```
 
+If you use this code in an academic setting please cite Ref. [3].
+
 [1] Behler, Jörg, and Michele Parrinello. "Generalized neural-network representation of high-dimensional potential-energy surfaces." Physical review letters 98.14 (2007): 146401.  
 [2] [https://www.uni-goettingen.de/de/560580.html](https://www.uni-goettingen.de/de/560580.html)  
 [3] Behler, Jörg. "Atom-centered symmetry functions for constructing high-dimensional neural network potentials." The Journal of chemical physics 134.7 (2011): 074106.  
+[3] Finkler, Jonas A., and Stefan Goedecker. "Experimental Absence of the Non-Perovskite Ground State Phases of MaPbI3 Explained by a Funnel Hopping Monte Carlo Study Based on a Neural Network Potential." Materials Advances (2023).
 
