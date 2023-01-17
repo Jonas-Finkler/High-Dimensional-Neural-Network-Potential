@@ -29,7 +29,7 @@ contains
     subroutine dynamicIntArray_append(da, elem)
         class(dynamicIntArray), intent(inout) :: da
         integer, intent(in) :: elem
-        real(dp), allocatable :: tmp(:)
+        integer, allocatable :: tmp(:)
 
         if (da%ndata + 1 > da%size) then
             allocate(tmp(da%ndata))
