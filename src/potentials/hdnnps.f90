@@ -409,7 +409,8 @@ contains
             sfs(iat)%nsf = handle%sfLists(ats%el(iat))%nsf
             allocate(sfs(iat)%sfs(sfs(iat)%nsf))
             do isf=1,handle%sfLists(ats%el(iat))%nsf
-              allocate(sfs(iat)%sfs(isf)%dsf(3,neiLists(iat)%nNeis))
+                sfs(iat)%sfs(isf)%nNeis = neiLists(iat)%nNeis
+                allocate(sfs(iat)%sfs(isf)%dsf(3,neiLists(iat)%nNeis))
             end do
         end do
 
